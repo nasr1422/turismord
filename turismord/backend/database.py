@@ -1,32 +1,39 @@
 """
-Database configuration – SQLAlchemy + MySQL (o SQLite para dev)
+Database configuration - SQLAlchemy + MySQL Aiven
 """
 import os
-from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, Boolean, Enum as SAEnum
+from sqlalchemy import create_engine, Column, Integer, String, Float, Text, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
+from dotenv import load_dotenv
 import enum
+
+load_dotenv()
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "sqlite:///./turismord.db"   # SQLite for local dev; switch to MySQL in prod
+    "sqlite:///./turismord.db"
 )
+
+# SSL config for Aiven MySQL
+if "aivencloud" in DATABASE_URL:
+    base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    ca_path = os.path.join(base_dir, "ca.pem")
+    connect_args = {"ssl": {"ca": ca_path}}
+elif "sqlite" in DATABASE_URL:
+    connect_args = {"check_same_thread": False}
+else:
+    connect_args = {}
 
 engine = create_engine(
     DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {},
+    connect_args=connect_args,
     pool_pre_ping=True,
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
-
-
-class EstadoReserva(str, enum.Enum):
-    pendiente = "pendiente"
-    confirmada = "confirmada"
-    cancelada = "cancelada"
 
 
 class Oferta(Base):
@@ -38,8 +45,8 @@ class Oferta(Base):
     descripcion = Column(Text, nullable=True)
     precio = Column(Float, nullable=False)
     duracion = Column(String(50), nullable=False)
-    dificultad = Column(String(50), default="Fácil")
-    idioma = Column(String(100), default="Español / Inglés")
+    dificultad = Column(String(50), default="Facil")
+    idioma = Column(String(100), default="Espanol / Ingles")
     incluye = Column(String(300), nullable=True)
     grupo_max = Column(String(50), default="20 personas")
     descuento = Column(Integer, nullable=True)
@@ -80,43 +87,44 @@ def init_db():
     db = SessionLocal()
     if db.query(Oferta).count() == 0:
         seed_offers = [
-            Oferta(nombre="Cataratas del Limón & Samaná", ubicacion="Samaná, RD",
-                   descripcion_corta="Descubre la impresionante cascada El Limón rodeada de naturaleza tropical y relájate en las playas de Samaná.",
-                   descripcion="Un tour completo que combina la majestuosa cascada El Limón de 52 metros con un paseo en yola por la bahía de Samaná. Incluye almuerzo típico dominicano y tiempo libre en la playa.",
-                   precio=89, duracion="1 día", dificultad="Moderada", descuento=15,
-                   incluye="Guía, transporte A/R, almuerzo, seguro", grupo_max="15 personas",
+            Oferta(nombre="Cataratas del Limon & Samana", ubicacion="Samana, RD",
+                   descripcion_corta="Descubre la impresionante cascada El Limon rodeada de naturaleza tropical.",
+                   descripcion="Un tour completo que combina la majestuosa cascada El Limon con un paseo en yola por la bahia de Samana. Incluye almuerzo tipico dominicano.",
+                   precio=89, duracion="1 dia", dificultad="Moderada", descuento=15,
+                   incluye="Guia, transporte A/R, almuerzo, seguro", grupo_max="15 personas",
                    imagen="https://images.unsplash.com/photo-1586611292717-f828b167408c?w=800&q=80"),
-            Oferta(nombre="Isla Saona – Paraíso Natural", ubicacion="La Romana, RD",
-                   descripcion_corta="Navega hacia la famosa Isla Saona con sus aguas turquesas y bancos de estrellas de mar en una piscina natural única.",
-                   descripcion="Embárcate en un catamarán de lujo hacia la Isla Saona, paraíso natural declarado parque nacional. Nada con estrellas de mar, almuerza en la playa y regresa en lancha rápida.",
-                   precio=75, duracion="1 día", dificultad="Fácil", descuento=None,
-                   incluye="Catamarán, almuerzo buffet, bebidas, guía", grupo_max="40 personas",
+            Oferta(nombre="Isla Saona - Paraiso Natural", ubicacion="La Romana, RD",
+                   descripcion_corta="Navega hacia la famosa Isla Saona con aguas turquesas y estrellas de mar.",
+                   descripcion="Embarquese en un catamaran de lujo hacia la Isla Saona. Nada con estrellas de mar y almuerza en la playa.",
+                   precio=75, duracion="1 dia", dificultad="Facil", descuento=None,
+                   incluye="Catamaran, almuerzo buffet, bebidas, guia", grupo_max="40 personas",
                    imagen="https://images.unsplash.com/photo-1559128010-7c1ad6e1b6a5?w=800&q=80"),
-            Oferta(nombre="Ciudad Colonial & Gastronomía", ubicacion="Santo Domingo, RD",
-                   descripcion_corta="Recorre el primer asentamiento europeo del Nuevo Mundo y descubre la rica gastronomía dominicana con un chef local.",
-                   descripcion="Recorrido a pie por la Zona Colonial, Patrimonio UNESCO. Visita el Alcázar de Colón, la Catedral Primada y finaliza con una clase de cocina criolla con productos del mercado local.",
-                   precio=55, duracion="Medio día", dificultad="Fácil", descuento=None,
-                   incluye="Guía certificado, degustaciones, materiales", grupo_max="12 personas",
+            Oferta(nombre="Ciudad Colonial & Gastronomia", ubicacion="Santo Domingo, RD",
+                   descripcion_corta="Recorre el primer asentamiento europeo del Nuevo Mundo.",
+                   descripcion="Recorrido a pie por la Zona Colonial, Patrimonio UNESCO. Finaliza con una clase de cocina criolla.",
+                   precio=55, duracion="Medio dia", dificultad="Facil", descuento=None,
+                   incluye="Guia certificado, degustaciones, materiales", grupo_max="12 personas",
                    imagen="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80"),
             Oferta(nombre="Punta Cana All-Inclusive", ubicacion="Punta Cana, RD",
-                   descripcion_corta="Experiencia completa en las mejores playas del Caribe con actividades acuáticas, deportes y entretenimiento sin límites.",
-                   descripcion="3 días y 2 noches en resort 5 estrellas en Punta Cana. Incluye todas las comidas, bebidas ilimitadas, deportes acuáticos, snorkel, kayak y entretenimiento nocturno.",
-                   precio=149, duracion="3 días", dificultad="Fácil", descuento=20,
-                   incluye="Hotel 5★, comidas, bebidas, deportes acuáticos", grupo_max="Sin límite",
+                   descripcion_corta="Experiencia completa en las mejores playas del Caribe.",
+                   descripcion="3 dias y 2 noches en resort 5 estrellas. Incluye todas las comidas y bebidas ilimitadas.",
+                   precio=149, duracion="3 dias", dificultad="Facil", descuento=20,
+                   incluye="Hotel 5 estrellas, comidas, bebidas, deportes acuaticos", grupo_max="Sin limite",
                    imagen="https://images.unsplash.com/photo-1530789253388-582c481c54b0?w=800&q=80"),
-            Oferta(nombre="Jarabacoa Adventure – Rafting", ubicacion="Jarabacoa, RD",
-                   descripcion_corta="Adrenalina pura en el río Yaque del Norte con rafting, canopy y senderismo en la Cordillera Central.",
-                   descripcion="Un día lleno de aventura en la 'Ciudad de las Flores'. Rafting grado III-IV, canopy de 200m sobre el bosque y senderismo hasta el Salto Jimenoa. Almuerzo campestre incluido.",
-                   precio=95, duracion="1 día", dificultad="Alta", descuento=None,
-                   incluye="Equipo, guía, almuerzo, seguro aventura", grupo_max="12 personas",
+            Oferta(nombre="Jarabacoa Adventure - Rafting", ubicacion="Jarabacoa, RD",
+                   descripcion_corta="Adrenalina pura en el rio Yaque del Norte con rafting y canopy.",
+                   descripcion="Un dia de aventura con rafting grado III-IV, canopy de 200m y senderismo hasta el Salto Jimenoa.",
+                   precio=95, duracion="1 dia", dificultad="Alta", descuento=None,
+                   incluye="Equipo, guia, almuerzo, seguro aventura", grupo_max="12 personas",
                    imagen="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80"),
-            Oferta(nombre="Los Haitises & Manglares", ubicacion="Samaná, RD",
-                   descripcion_corta="Navega por el parque nacional Los Haitises, cuevas con pictografías taínas y el ecosistema de manglar más denso del Caribe.",
-                   descripcion="Explora el Parque Nacional Los Haitises en lancha. Visita cuevas con arte rupestre taíno, islotes de manglar con aves endémicas y el estero Portillo.",
-                   precio=85, duracion="1 día", dificultad="Moderada", descuento=10,
-                   incluye="Lancha, guía naturalista, snorkel, almuerzo", grupo_max="20 personas",
+            Oferta(nombre="Los Haitises & Manglares", ubicacion="Samana, RD",
+                   descripcion_corta="Navega por el parque nacional Los Haitises y sus cuevas tainas.",
+                   descripcion="Explora el Parque Nacional Los Haitises. Visita cuevas con arte rupestre taino e islotes de manglar.",
+                   precio=85, duracion="1 dia", dificultad="Moderada", descuento=10,
+                   incluye="Lancha, guia naturalista, snorkel, almuerzo", grupo_max="20 personas",
                    imagen="https://images.unsplash.com/photo-1518623489648-a173ef7824f3?w=800&q=80"),
         ]
         db.add_all(seed_offers)
         db.commit()
+        print(f"Base de datos inicializada con {len(seed_offers)} ofertas.")
     db.close()
