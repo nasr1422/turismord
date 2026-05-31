@@ -111,4 +111,4 @@ release/v1.0  → Preparación de release
 ## 👥 Créditos
 
 Proyecto Final – Desarrollo Web  
-© 2025 TurismoRD
+© 2026 TurismoRD
