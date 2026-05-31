@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: turismord
+    env: python
+    buildCommand: pip install -r requirements.txt && reflex init
+    startCommand: reflex run --env prod
+    envVars:
+      - key: DATABASE_URL
+        sync: false
